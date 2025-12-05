@@ -1,0 +1,1 @@
+If injected specifically in Task Manager (Taskmgr.exe), it hooks NtQuerySystemInformation, modifies the process list returned to the OS, and removes a target process from enumeration. Basically it hides the process from being viewed in the Task Manager list of processes.
