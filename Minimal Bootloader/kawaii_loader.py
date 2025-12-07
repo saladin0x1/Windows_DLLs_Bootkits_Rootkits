@@ -399,7 +399,7 @@ def uefi_boot(private_key):
         log_print("Setting new BCD entry as default and modifying display order/timeout.")
         run_cmd(["bcdedit", "/default", g])                     
         run_cmd(["bcdedit", "/displayorder", g, "/addfirst"])    
-        run_cmd(["bcdedit", "/timeout", "10"])       
+        run_cmd(["bcdedit", "/timeout", "0"]) # Immediate Booting of the .efi or .bin file       
 
         log_print("BCD entry created, set as default, and set as first in display order.")
         
