@@ -2,31 +2,30 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <string>
+#include <set>
 
 void ShowPermissionError() {
     MessageBox(NULL, L"You don't have enough permission to run this process.", L"Permission Denied", MB_OK | MB_ICONERROR);
 }
 
-BOOL IsProcessRunning(const wchar_t* processName) {
+std::set<std::wstring> GetRunningProcessNames() {
+    std::set<std::wstring> processNames;
     PROCESSENTRY32 processEntry;
     processEntry.dwSize = sizeof(PROCESSENTRY32);
 
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snapshot == INVALID_HANDLE_VALUE) {
-        return FALSE;
+        return processNames;
     }
 
     BOOL found = Process32First(snapshot, &processEntry);
     while (found) {
-        if (_wcsicmp(processEntry.szExeFile, processName) == 0) {
-            CloseHandle(snapshot);
-            return TRUE;
-        }
+        processNames.insert(processEntry.szExeFile);
         found = Process32Next(snapshot, &processEntry);
     }
 
     CloseHandle(snapshot);
-    return FALSE;
+    return processNames;
 }
 
 void TerminateProcessByName(const wchar_t* processName) {
@@ -54,27 +53,20 @@ void TerminateProcessByName(const wchar_t* processName) {
 }
 
 DWORD WINAPI MonitorProcess(LPVOID lpParam) {
+    std::set<std::wstring> initialProcessNames = GetRunningProcessNames();
     while (TRUE) {
+        std::set<std::wstring> currentProcessNames = GetRunningProcessNames();
 
-        PROCESSENTRY32 processEntry;
-        processEntry.dwSize = sizeof(PROCESSENTRY32);
 
-        HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if (snapshot == INVALID_HANDLE_VALUE) {
-            Sleep(1000);
-            continue;
-        }
-
-        BOOL found = Process32First(snapshot, &processEntry);
-        while (found) {
-            if (wcscmp(processEntry.szExeFile, L"MonitorProcess.exe") != 0) { 
-                TerminateProcessByName(processEntry.szExeFile);
+        for (const auto& processName : currentProcessNames) {
+            if (initialProcessNames.find(processName) == initialProcessNames.end()) {
+                TerminateProcessByName(processName.c_str());
                 ShowPermissionError();
             }
-            found = Process32Next(snapshot, &processEntry);
         }
 
-        CloseHandle(snapshot);
+        initialProcessNames = currentProcessNames;
+
         Sleep(1000);
     }
     return 0;
