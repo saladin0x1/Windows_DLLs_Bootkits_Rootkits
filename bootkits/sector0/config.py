@@ -64,13 +64,16 @@ VERBOSE = True
 
 UEFI = {
     "payload": UEFI_PAYLOAD_BINARY,
+    "binary": UEFI_PAYLOAD_BINARY,
     "efi_path": UEFI_EFI_PATH,
     "entry_name": UEFI_BOOT_ENTRY_NAME,
+    "boot_name": UEFI_BOOT_ENTRY_NAME,
 }
 
 BIOS = {
     "payload": BIOS_PAYLOAD_BINARY,
     "target_filename": BIOS_TARGET_FILENAME,
+    "dest_name": BIOS_TARGET_FILENAME,
     "write_raw": WRITE_RAW_SECTORS,
 }
 
@@ -78,6 +81,7 @@ INSTALLER = {
     "auto_reboot": AUTO_REBOOT,
     "reboot_delay": REBOOT_DELAY_SECONDS,
     "backup_original": BACKUP_ORIGINAL,
+    "create_backup": BACKUP_ORIGINAL,
     "alloc_console": ALLOC_CONSOLE,
     "verbose": VERBOSE,
 }
