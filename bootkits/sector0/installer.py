@@ -75,7 +75,7 @@ def main():
     
     try:
         # Initialize disk manager
-        disk = DiskManager(BASE_DIR)
+        disk = DiskManager()
         
         # Detect boot mode
         if args.uefi_only:
