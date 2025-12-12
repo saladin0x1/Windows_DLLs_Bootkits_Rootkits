@@ -110,10 +110,8 @@ def detect_boot_mode():
 
 def mount_partition(is_uefi):
     if is_uefi:
-        target_search = "FAT32"
         target_error = "EFI System Partition (ESP) volume not found."
     else:
-        target_search = "Active"
         target_error = "Active/System Partition not found. Legacy boot requires an active partition."
 
     tmp = os.path.join(DIR, 'tmp_list.txt')
@@ -129,11 +127,27 @@ def mount_partition(is_uefi):
             os.remove(tmp)
 
     for line in out.splitlines():
-        if target_search in line and ("System" in line or "Hidden" in line or "Active" in line) and "Volume" in line:
-            m = re.search(r'Volume\s+(\d+)', line)
-            if m:
-                vol = m.group(1)
-                break
+        # For UEFI: look for FAT32 with System/Hidden
+        # For BIOS: look for System, Active, or Boot partition (NTFS typically)
+        if is_uefi:
+            if "FAT32" in line and ("System" in line or "Hidden" in line) and "Volume" in line:
+                m = re.search(r'Volume\s+(\d+)', line)
+                if m:
+                    vol = m.group(1)
+                    break
+        else:
+            # BIOS/Legacy: Look for "System" or "Active" in Info column
+            # The System Reserved partition typically shows "System" in Info
+            if "Volume" in line and ("System" in line or "Active" in line):
+                # Skip CD-ROM and other non-partition types
+                if "CD-ROM" in line or "Removable" in line or "DVD" in line:
+                    continue
+                # Prefer NTFS partition marked as System
+                if "NTFS" in line or "Partition" in line:
+                    m = re.search(r'Volume\s+(\d+)', line)
+                    if m:
+                        vol = m.group(1)
+                        break
             
     if not vol:
         raise Exception(target_error)
