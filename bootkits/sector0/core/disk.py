@@ -344,3 +344,89 @@ class DiskManager:
         except Exception as e:
             log(f"Sector write failed: {e}", "ERROR")
             return False
+
+    # =========================================================================
+    # Aliases for legacy.py and uefi.py compatibility
+    # =========================================================================
+    
+    def find_system_volume(self, is_uefi: bool) -> Optional[str]:
+        """
+        Find the system volume number.
+        
+        Args:
+            is_uefi: True for ESP, False for System Reserved
+        
+        Returns:
+            Volume number as string, or None if not found
+        """
+        tmp_list = self._temp_file("find_vol")
+        
+        try:
+            with open(tmp_list, 'w') as f:
+                f.write("list volume\nexit\n")
+            
+            output = run_cmd(["diskpart", "/s", tmp_list])
+            return self._find_boot_volume(output, is_uefi)
+        finally:
+            self._cleanup_temp_files()
+    
+    def mount_volume(self, volume_num: str) -> str:
+        """
+        Mount a volume by number and return the drive path.
+        
+        Args:
+            volume_num: Volume number from find_system_volume()
+        
+        Returns:
+            Drive path (e.g., "F:\\")
+        """
+        tmp_mount = self._temp_file("mount_vol")
+        tmp_list = self._temp_file("list_vol")
+        
+        try:
+            # Assign drive letter
+            with open(tmp_mount, 'w') as f:
+                f.write(f"select volume {volume_num}\nassign\nexit\n")
+            
+            run_cmd(["diskpart", "/s", tmp_mount])
+            time.sleep(1)
+            
+            # Get assigned letter
+            with open(tmp_list, 'w') as f:
+                f.write("list volume\nexit\n")
+            
+            output = run_cmd(["diskpart", "/s", tmp_list])
+            drive_letter = self._get_volume_letter(output, volume_num)
+            
+            if not drive_letter:
+                raise Exception(f"Could not get drive letter for volume {volume_num}")
+            
+            drive_path = f"{drive_letter}:\\"
+            time.sleep(1)
+            
+            return drive_path
+        finally:
+            self._cleanup_temp_files()
+    
+    def unmount_volume(self, drive_path: str) -> None:
+        """Alias for unmount()."""
+        self.unmount(drive_path)
+    
+    def check_secure_boot(self) -> bool:
+        """
+        Check if Secure Boot is enabled.
+        
+        Returns:
+            True if Secure Boot is enabled
+        """
+        try:
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"SYSTEM\CurrentControlSet\Control\SecureBoot\State"
+            )
+            value, _ = winreg.QueryValueEx(key, "UEFISecureBootEnabled")
+            winreg.CloseKey(key)
+            return value == 1
+        except Exception:
+            return False

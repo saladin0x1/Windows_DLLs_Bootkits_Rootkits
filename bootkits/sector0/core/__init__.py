@@ -11,6 +11,7 @@ from .utils import (
     request_admin, 
     run_cmd,
     run_cmd_safe,
+    run_cmd_silent,
     is_windows,
     allocate_console
 )
@@ -25,6 +26,7 @@ __all__ = [
     'request_admin',
     'run_cmd',
     'run_cmd_safe',
+    'run_cmd_silent',
     'is_windows',
     'allocate_console',
     'DiskManager',

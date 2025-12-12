@@ -9,7 +9,7 @@ import subprocess
 import shutil
 from typing import Optional
 
-from .utils import log, run_cmd_safe
+from .utils import log, run_cmd_safe, run_cmd
 from .disk import DiskManager
 
 

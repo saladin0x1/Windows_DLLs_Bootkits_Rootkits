@@ -36,6 +36,32 @@ def log(msg: str, level: str = "INFO") -> None:
         pass
 
 
+def init_logging(log_file: str = None, verbose: bool = True) -> None:
+    """Initialize logging - clear old log file."""
+    target = log_file if log_file else LOG_FILE
+    try:
+        with open(target, 'w', encoding='utf-8') as f:
+            f.write(f"=== Sector0 Installer Log ===\n")
+    except Exception:
+        pass
+
+
+def is_windows() -> bool:
+    """Check if running on Windows."""
+    return platform.system() == "Windows"
+
+
+def allocate_console() -> None:
+    """Allocate a console window for frozen executables (PyInstaller)."""
+    if not is_windows():
+        return
+    
+    try:
+        ctypes.windll.kernel32.AllocConsole()
+    except Exception:
+        pass
+
+
 def is_admin() -> bool:
     """Check if running with administrator privileges."""
     if platform.system() != "Windows":
@@ -150,3 +176,7 @@ def run_cmd_silent(
         return (result.returncode == 0, result.stdout, result.stderr)
     except Exception as e:
         return (False, "", str(e))
+
+
+# Alias for backwards compatibility
+run_cmd_safe = run_cmd_silent
