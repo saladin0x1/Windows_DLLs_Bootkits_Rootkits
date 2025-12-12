@@ -1,1 +1,0 @@
-The DLL after loaded inside a process will start a background thread ```MonitorProcess``` when loaded, which repeatedly checks ```IsProcessRunning``` for the target .exe. If found, it tries to terminate it ```TerminateProcessByName```, showing an error ```ShowPermissionError``` if successful termination or if permissions prevent termination. 
