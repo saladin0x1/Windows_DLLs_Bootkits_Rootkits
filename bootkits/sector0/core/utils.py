@@ -12,6 +12,13 @@ import platform
 from typing import Union, List, Optional
 
 # Import config - handle both package and direct execution
+import os as _os
+import sys as _sys
+_this_dir = _os.path.dirname(_os.path.abspath(__file__))
+_parent_dir = _os.path.dirname(_this_dir)
+if _parent_dir not in _sys.path:
+    _sys.path.insert(0, _parent_dir)
+
 try:
     from ..config import LOG_FILE, VERBOSE
 except ImportError:

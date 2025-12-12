@@ -11,11 +11,18 @@ import ctypes
 from ctypes import wintypes
 from typing import Optional, Tuple
 
+import sys
+import os
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_this_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
 try:
     from .utils import log, run_cmd
     from ..config import BASE_DIR
 except ImportError:
-    from utils import log, run_cmd
+    from core.utils import log, run_cmd
     from config import BASE_DIR
 
 

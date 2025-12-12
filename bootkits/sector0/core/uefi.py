@@ -9,8 +9,12 @@ import re
 import subprocess
 from typing import Optional, Tuple
 
-from .utils import log, run_cmd, run_cmd_safe
-from .disk import DiskManager
+try:
+    from .utils import log, run_cmd, run_cmd_safe
+    from .disk import DiskManager
+except ImportError:
+    from core.utils import log, run_cmd, run_cmd_safe
+    from core.disk import DiskManager
 
 
 class UEFIBootInstaller:

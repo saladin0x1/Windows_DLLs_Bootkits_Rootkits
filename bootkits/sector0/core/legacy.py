@@ -9,8 +9,12 @@ import subprocess
 import shutil
 from typing import Optional
 
-from .utils import log, run_cmd_safe, run_cmd
-from .disk import DiskManager
+try:
+    from .utils import log, run_cmd_safe, run_cmd
+    from .disk import DiskManager
+except ImportError:
+    from core.utils import log, run_cmd_safe, run_cmd
+    from core.disk import DiskManager
 
 
 class LegacyBootInstaller:
