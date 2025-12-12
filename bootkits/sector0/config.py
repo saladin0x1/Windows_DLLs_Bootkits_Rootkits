@@ -57,3 +57,39 @@ ALLOC_CONSOLE = True
 
 # Enable verbose logging
 VERBOSE = True
+
+# =============================================================================
+# CONFIG DICTS (for easy import)
+# =============================================================================
+
+UEFI = {
+    "payload": UEFI_PAYLOAD_BINARY,
+    "efi_path": UEFI_EFI_PATH,
+    "entry_name": UEFI_BOOT_ENTRY_NAME,
+}
+
+BIOS = {
+    "payload": BIOS_PAYLOAD_BINARY,
+    "target_filename": BIOS_TARGET_FILENAME,
+    "write_raw": WRITE_RAW_SECTORS,
+}
+
+INSTALLER = {
+    "auto_reboot": AUTO_REBOOT,
+    "reboot_delay": REBOOT_DELAY_SECONDS,
+    "backup_original": BACKUP_ORIGINAL,
+    "alloc_console": ALLOC_CONSOLE,
+    "verbose": VERBOSE,
+}
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def get_uefi_binary_path():
+    """Get full path to UEFI payload binary."""
+    return os.path.join(PAYLOADS_DIR, UEFI_PAYLOAD_BINARY)
+
+def get_bios_binary_path():
+    """Get full path to BIOS payload binary."""
+    return os.path.join(PAYLOADS_DIR, BIOS_PAYLOAD_BINARY)
