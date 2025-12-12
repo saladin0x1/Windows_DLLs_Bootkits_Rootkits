@@ -1,0 +1,47 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    env:
+      SKIP_UEFI: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install nasm
+        run: choco install nasm -y
+
+      - name: Build payloads (legacy only)
+        shell: bash
+        run: |
+          chmod +x payloads/build.sh
+          SKIP_UEFI=1 bash payloads/build.sh
+
+      - name: Install PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller==6.17.0
+
+      - name: Build Windows EXE
+        run: |
+          pyinstaller --onefile --noconsole \
+            --add-data "payloads;payloads" \
+            --add-data "core;core" \
+            --add-data "config.py;." \
+            --name sector0 \
+            installer.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sector0-windows
+          path: dist/sector0.exe

@@ -21,8 +21,8 @@ else
     echo "    Install: brew install nasm (macOS) or apt install nasm (Linux)"
 fi
 
-# Build UEFI payload (requires cross-compiler)
-if [ -f "$PAYLOADS_DIR/BOOTX64.c" ]; then
+# Build UEFI payload (requires cross-compiler). Set SKIP_UEFI=1 to bypass.
+if [ -z "$SKIP_UEFI" ] && [ -f "$PAYLOADS_DIR/BOOTX64.c" ]; then
     if command -v x86_64-w64-mingw32-gcc &> /dev/null; then
         echo "[+] Building BOOTX64.efi..."
         x86_64-w64-mingw32-gcc \
@@ -33,7 +33,7 @@ if [ -f "$PAYLOADS_DIR/BOOTX64.c" ]; then
             -mno-red-zone \
             -c "$PAYLOADS_DIR/BOOTX64.c" \
             -o "$PAYLOADS_DIR/BOOTX64.o"
-        
+
         x86_64-w64-mingw32-ld \
             -nostdlib \
             -Wl,-dll \
@@ -42,13 +42,15 @@ if [ -f "$PAYLOADS_DIR/BOOTX64.c" ]; then
             -e efi_main \
             "$PAYLOADS_DIR/BOOTX64.o" \
             -o "$PAYLOADS_DIR/BOOTX64.efi"
-        
+
         rm -f "$PAYLOADS_DIR/BOOTX64.o"
         echo "    Output: BOOTX64.efi ($(wc -c < "$PAYLOADS_DIR/BOOTX64.efi") bytes)"
     else
         echo "[!] x86_64-w64-mingw32-gcc not found - skipping UEFI payload"
         echo "    Install: brew install mingw-w64 (macOS) or apt install mingw-w64 (Linux)"
     fi
+else
+    echo "[!] SKIP_UEFI=1 or BOOTX64.c missing - skipping UEFI payload"
 fi
 
 echo ""
