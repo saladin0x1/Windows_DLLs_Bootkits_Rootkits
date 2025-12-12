@@ -1,1 +1,4 @@
 __pycache__/
+*.pyc
+*.bin
+test_disk.img
