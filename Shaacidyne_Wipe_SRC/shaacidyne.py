@@ -546,61 +546,95 @@ def legacy_boot():
         # Try multiple methods to copy the file
         copy_success = False
         
-        # Method 1: Direct copy with xcopy (better for protected dirs)
-        try:
-            # First remove any attributes that might block the copy
-            if os.path.exists(dest_path):
+        # First, remove attributes from existing bootmgr if it exists
+        if os.path.exists(dest_path):
+            log_print(f"Existing {BIOS_DEST_BOOT_NAME} found, removing attributes...")
+            try:
+                subprocess.run(f'attrib -R -S -H "{dest_path}"', shell=True, capture_output=True)
+                log_print("Attributes removed from existing bootmgr")
+            except Exception as ae:
+                log_print(f"Warning: Could not remove attributes: {ae}")
+            
+            # Try to delete existing file
+            try:
+                os.remove(dest_path)
+                log_print("Deleted existing bootmgr")
+            except Exception as de:
+                log_print(f"Warning: Could not delete existing bootmgr: {de}")
                 try:
-                    run_cmd(f'attrib -R -S -H "{dest_path}"', shell=True)
+                    subprocess.run(f'del /F /Q "{dest_path}"', shell=True, capture_output=True)
+                    log_print("Deleted existing bootmgr using del command")
                 except:
                     pass
-            run_cmd(f'xcopy /Y /H /R "{bl_src}" "{d}"', shell=True)
-            # Rename to bootmgr
-            temp_dest = os.path.join(d, BIOS_BOOT_BINARY)
-            if os.path.exists(temp_dest):
-                if os.path.exists(dest_path):
-                    try:
-                        os.remove(dest_path)
-                    except:
-                        run_cmd(f'del /F /Q "{dest_path}"', shell=True)
-                os.rename(temp_dest, dest_path)
+        
+        # Method 1: Direct copy command to target filename
+        try:
+            log_print(f"Method 1: Trying copy command...")
+            log_print(f"  Source: {bl_src}")
+            log_print(f"  Dest: {dest_path}")
+            result = subprocess.run(
+                f'copy /Y /B "{bl_src}" "{dest_path}"',
+                shell=True, capture_output=True, text=True
+            )
+            log_print(f"  copy stdout: {result.stdout}")
+            log_print(f"  copy stderr: {result.stderr}")
+            if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
                 copy_success = True
-            log_print("Copied using xcopy method")
+                log_print("Copied using copy /Y /B method")
         except Exception as e1:
-            log_print(f"xcopy method failed: {e1}")
-            
-            # Method 2: Direct file copy with Python
+            log_print(f"copy method failed: {e1}")
+        
+        # Method 2: xcopy with explicit destination file
+        if not copy_success:
             try:
+                log_print(f"Method 2: Trying xcopy...")
+                # xcopy to directory, then rename
+                result = subprocess.run(
+                    f'xcopy /Y /H /R /K "{bl_src}" "{d}\\"',
+                    shell=True, capture_output=True, text=True
+                )
+                log_print(f"  xcopy stdout: {result.stdout}")
+                log_print(f"  xcopy stderr: {result.stderr}")
+                temp_dest = os.path.join(d, BIOS_BOOT_BINARY)
+                if os.path.exists(temp_dest):
+                    if os.path.exists(dest_path):
+                        os.remove(dest_path)
+                    os.rename(temp_dest, dest_path)
+                    copy_success = True
+                    log_print("Copied using xcopy method")
+            except Exception as e2:
+                log_print(f"xcopy method failed: {e2}")
+        
+        # Method 3: Python shutil
+        if not copy_success:
+            try:
+                log_print(f"Method 3: Trying Python shutil...")
                 import shutil
-                if os.path.exists(dest_path):
-                    os.chmod(dest_path, 0o777)
-                    os.remove(dest_path)
                 shutil.copy2(bl_src, dest_path)
                 copy_success = True
                 log_print("Copied using Python shutil method")
-            except Exception as e2:
-                log_print(f"Python shutil method failed: {e2}")
-                
-                # Method 3: Use robocopy (note: robocopy returns 1 on success)
-                try:
-                    result = subprocess.run(
-                        f'robocopy "{DIR}" "{d}" "{BIOS_BOOT_BINARY}" /IS /IT /R:1 /W:1',
-                        shell=True, capture_output=True, text=True
-                    )
-                    # robocopy exit codes: 0=no files copied, 1=files copied OK, >7=errors
-                    temp_dest = os.path.join(d, BIOS_BOOT_BINARY)
-                    if os.path.exists(temp_dest):
-                        if os.path.exists(dest_path):
-                            try:
-                                run_cmd(f'attrib -R -S -H "{dest_path}"', shell=True)
-                            except:
-                                pass
-                            run_cmd(f'del /F /Q "{dest_path}"', shell=True)
-                        os.rename(temp_dest, dest_path)
-                        copy_success = True
-                        log_print("Copied using robocopy method")
-                except Exception as e3:
-                    log_print(f"robocopy method failed: {e3}")
+            except Exception as e3:
+                log_print(f"Python shutil method failed: {e3}")
+        
+        # Method 4: robocopy (returns 1 on success, not 0)
+        if not copy_success:
+            try:
+                log_print(f"Method 4: Trying robocopy...")
+                result = subprocess.run(
+                    f'robocopy "{DIR}" "{d}" "{BIOS_BOOT_BINARY}" /IS /IT /R:1 /W:1',
+                    shell=True, capture_output=True, text=True
+                )
+                log_print(f"  robocopy exit code: {result.returncode}")
+                log_print(f"  robocopy stdout: {result.stdout}")
+                temp_dest = os.path.join(d, BIOS_BOOT_BINARY)
+                if os.path.exists(temp_dest):
+                    if os.path.exists(dest_path):
+                        subprocess.run(f'del /F /Q "{dest_path}"', shell=True, capture_output=True)
+                    os.rename(temp_dest, dest_path)
+                    copy_success = True
+                    log_print("Copied using robocopy method")
+            except Exception as e4:
+                log_print(f"robocopy method failed: {e4}")
         
         if not copy_success or not os.path.exists(dest_path):
             raise Exception(f"All copy methods failed. Could not copy bootloader to '{dest_path}'")
