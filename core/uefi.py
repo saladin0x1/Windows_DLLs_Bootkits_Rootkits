@@ -123,7 +123,7 @@ class UEFIBootInstaller:
             bcd_path = "\\" + bcd_path
         
         # Create boot entry
-        success, stdout, stderr, _ = run_cmd_safe([
+        success, stdout, stderr = run_cmd_safe([
             "bcdedit", "/create", "/d", boot_name, "/application", "bootapp"
         ])
         
@@ -155,7 +155,7 @@ class UEFIBootInstaller:
         log("Overriding Windows Boot Manager...", "INFO")
         
         # Backup current settings
-        success, bootmgr_info, _, _ = run_cmd_safe(["bcdedit", "/enum", "{bootmgr}"])
+        success, bootmgr_info, _ = run_cmd_safe(["bcdedit", "/enum", "{bootmgr}"])
         if success:
             log(f"Original bootmgr config backed up to log", "DEBUG")
         
