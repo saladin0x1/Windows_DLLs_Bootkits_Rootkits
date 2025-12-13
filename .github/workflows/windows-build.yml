@@ -32,7 +32,7 @@ jobs:
           python -m pip install pyinstaller==6.17.0
 
       - name: Build Windows EXE
-        run: pyinstaller --onefile --noconsole --add-data "payloads;payloads" --add-data "core;core" --add-data "config.py;." --name sector0 installer.py
+        run: pyinstaller --onefile --noconsole --hidden-import=ctypes --hidden-import=ctypes.wintypes --add-data "payloads;payloads" --add-data "core;core" --add-data "config.py;." --name sector0 installer.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
